@@ -585,6 +585,7 @@
         }
         var totalCountries = 0;
         var features = [];
+        var labelGroup;
 
         // ── DOM refs ──
         var loading = document.getElementById('loading');
@@ -825,6 +826,9 @@
                 d3.selectAll('.country').classed('revealing', false);
             }, 1800);
 
+            // ── Country Labels (must init before renderInitialLabels) ──
+            labelGroup = g.append('g').attr('class', 'labels');
+
             updateCounter();
             renderInitialLabels();
             loading.classList.add('hidden');
@@ -834,9 +838,6 @@
             loading.querySelector('p').textContent = 'Failed to load map data';
             loading.querySelector('.loader').style.display = 'none';
         }
-
-        // ── Country Labels ──
-        var labelGroup = g.append('g').attr('class', 'labels');
 
         function addLabel(feature) {
             var id = String(feature.id);
