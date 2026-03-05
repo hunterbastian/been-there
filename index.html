@@ -233,31 +233,31 @@
         .wave-pixel {
             fill: none;
             stroke: var(--land-stroke);
-            stroke-width: 0.5;
+            stroke-width: 0.8;
             opacity: 0;
             pointer-events: none;
-            animation: wave-bob 3s ease-in-out infinite;
+            animation: wave-bob 2.5s ease-in-out infinite;
         }
 
         .wind-pixel {
             fill: none;
             stroke: var(--text-tertiary);
-            stroke-width: 0.4;
+            stroke-width: 0.7;
             opacity: 0;
             pointer-events: none;
-            animation: wind-drift 5s ease-in-out infinite;
+            animation: wind-drift 4s ease-in-out infinite;
         }
 
         @keyframes wave-bob {
-            0%, 100% { opacity: 0.35; transform: translateY(0); }
-            50% { opacity: 0.6; transform: translateY(-1.2px); }
+            0%, 100% { opacity: 0.5; transform: translateY(0); }
+            50% { opacity: 0.8; transform: translateY(-2px); }
         }
 
         @keyframes wind-drift {
             0% { opacity: 0; transform: translateX(0); }
-            20% { opacity: 0.3; }
-            80% { opacity: 0.3; }
-            100% { opacity: 0; transform: translateX(6px); }
+            15% { opacity: 0.45; }
+            85% { opacity: 0.45; }
+            100% { opacity: 0; transform: translateX(8px); }
         }
 
         .ocean-label {
@@ -705,39 +705,44 @@
                 console.warn('Rivers data unavailable:', e);
             }
 
-            // Pixel water waves (cute ocean animations)
+            // Pixel water waves (square wave — right angles only, true pixel art)
             var waveGroup = g.append('g').attr('class', 'ocean-waves');
             var wavePositions = [
-                [65, 160], [110, 290], [45, 360], [85, 420],
-                [385, 130], [405, 260], [375, 360], [425, 190],
-                [645, 310], [675, 360], [615, 290],
-                [885, 210], [915, 310], [855, 160], [925, 410],
-                [305, 475], [505, 468], [705, 475],
-                [505, 28], [355, 35]
+                [55, 150], [120, 270], [35, 340], [80, 410], [90, 190], [50, 450],
+                [380, 120], [410, 240], [365, 340], [430, 180], [395, 400],
+                [640, 300], [680, 350], [610, 270], [660, 380],
+                [870, 200], [920, 290], [840, 150], [930, 390], [860, 340],
+                [280, 472], [480, 465], [680, 472], [180, 468],
+                [490, 25], [340, 30], [600, 20],
+                [160, 320], [720, 420], [550, 200], [250, 160]
             ];
             wavePositions.forEach(function (pos, i) {
                 waveGroup.append('path')
                     .attr('class', 'wave-pixel')
                     .attr('d', 'M' + pos[0] + ',' + pos[1] +
-                        ' l2,-1.5 l2,1.5 l2,-1.5 l2,1.5 l2,-1.5 l2,1.5')
-                    .style('animation-delay', (i * 0.4 % 3).toFixed(1) + 's');
+                        ' h2 v-2 h2 v2 h2 v-2 h2 v2 h2 v-2 h2 v2')
+                    .style('animation-delay', (i * 0.3 % 3.5).toFixed(1) + 's');
             });
 
-            // Pixel wind dashes (cute breeze animations)
+            // Pixel wind streaks (triple trailing dashes — gets shorter like a gust)
             var windGroup = g.append('g').attr('class', 'ocean-wind');
             var windPositions = [
                 [155, 210, -5], [505, 160, -3], [755, 260, -8],
                 [305, 310, 5], [825, 360, -4], [205, 430, 3],
                 [605, 110, -6], [455, 390, 4], [75, 250, -2],
-                [560, 320, 6], [780, 180, -5], [340, 140, 3]
+                [560, 320, 6], [780, 180, -5], [340, 140, 3],
+                [130, 350, -4], [700, 120, -7], [470, 450, 2],
+                [250, 200, -3], [850, 270, -6], [410, 100, 4]
             ];
             windPositions.forEach(function (pos, i) {
+                var x = pos[0], y = pos[1];
                 windGroup.append('path')
                     .attr('class', 'wind-pixel')
-                    .attr('d', 'M' + pos[0] + ',' + pos[1] +
-                        ' h8 M' + (pos[0] + 1.5) + ',' + (pos[1] + 2) + ' h5.5')
-                    .attr('transform', 'rotate(' + pos[2] + ' ' + pos[0] + ' ' + pos[1] + ')')
-                    .style('animation-delay', (i * 0.6 % 4).toFixed(1) + 's');
+                    .attr('d', 'M' + x + ',' + y + ' h12' +
+                        ' M' + (x + 3) + ',' + (y + 2.5) + ' h8' +
+                        ' M' + (x + 6) + ',' + (y + 5) + ' h4')
+                    .attr('transform', 'rotate(' + pos[2] + ' ' + x + ' ' + y + ')')
+                    .style('animation-delay', (i * 0.45 % 4).toFixed(1) + 's');
             });
 
             // Ocean name labels (vintage atlas feel)
