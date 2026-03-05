@@ -214,12 +214,49 @@
             opacity: 0.5;
         }
 
-        .topo-line {
+        .river {
             fill: none;
             stroke: var(--land-stroke);
-            stroke-width: 0.15;
-            opacity: 0.35;
+            stroke-width: 0.35;
+            opacity: 0.5;
             pointer-events: none;
+        }
+
+        .antarctica {
+            fill: var(--land);
+            stroke: var(--land-stroke);
+            stroke-width: 0.3;
+            pointer-events: none;
+        }
+
+        .wave-pixel {
+            fill: none;
+            stroke: var(--land-stroke);
+            stroke-width: 0.3;
+            opacity: 0;
+            pointer-events: none;
+            animation: wave-bob 3s ease-in-out infinite;
+        }
+
+        .wind-pixel {
+            fill: none;
+            stroke: var(--text-tertiary);
+            stroke-width: 0.25;
+            opacity: 0;
+            pointer-events: none;
+            animation: wind-drift 5s ease-in-out infinite;
+        }
+
+        @keyframes wave-bob {
+            0%, 100% { opacity: 0.25; transform: translateY(0); }
+            50% { opacity: 0.45; transform: translateY(-0.8px); }
+        }
+
+        @keyframes wind-drift {
+            0% { opacity: 0; transform: translateX(0); }
+            20% { opacity: 0.2; }
+            80% { opacity: 0.2; }
+            100% { opacity: 0; transform: translateX(4px); }
         }
 
         .boundary {
@@ -280,12 +317,12 @@
         }
 
         .country-label rect {
-            fill: var(--text);
+            fill: var(--visited);
             rx: 2;
         }
 
         .country-label text {
-            fill: var(--bg);
+            fill: #fff;
             font-family: "Geist Mono", ui-monospace, monospace;
             font-size: 3.5px;
             font-weight: 500;
@@ -573,6 +610,7 @@
             var countries = topojson.feature(world, world.objects.countries);
             var borders = topojson.mesh(world, world.objects.countries, function (a, b) { return a !== b; });
 
+            var antarcticaFeature = countries.features.find(function (f) { return f.id === '010'; });
             features = countries.features.filter(function (f) { return f.id !== '010'; });
             totalCountries = features.length;
             totalEl.textContent = totalCountries;
@@ -601,25 +639,63 @@
                 .attr('class', 'boundary')
                 .attr('d', pathGen);
 
-            // Topographic contour lines (inset borders for elevation feel)
-            var topoGroup = g.append('g').attr('class', 'topo-lines');
-            var insetScales = [0.92, 0.82, 0.70];
-            features.forEach(function (f) {
-                var centroid = pathGen.centroid(f);
-                if (isNaN(centroid[0])) return;
-                var area = pathGen.area(f);
-                if (area < 50) return; // skip tiny countries
-                insetScales.forEach(function (s) {
-                    if (area < 200 && s < 0.8) return; // fewer lines for small countries
-                    topoGroup.append('path')
-                        .datum(f)
-                        .attr('class', 'topo-line')
-                        .attr('d', pathGen)
-                        .attr('transform',
-                            'translate(' + centroid[0] * (1 - s) + ',' + centroid[1] * (1 - s) + ') scale(' + s + ')'
-                        )
-                        .attr('transform-origin', '0 0');
-                });
+            // Antarctica (non-clickable)
+            if (antarcticaFeature) {
+                g.append('path')
+                    .datum(antarcticaFeature)
+                    .attr('class', 'antarctica')
+                    .attr('d', pathGen);
+            }
+
+            // Real world rivers (Natural Earth 110m)
+            try {
+                var riverRes = await fetch('https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_rivers_lake_centerlines.geojson');
+                if (riverRes.ok) {
+                    var riverData = await riverRes.json();
+                    var riverGroup = g.append('g').attr('class', 'rivers');
+                    riverGroup.selectAll('.river')
+                        .data(riverData.features)
+                        .join('path')
+                        .attr('class', 'river')
+                        .attr('d', pathGen);
+                }
+            } catch (e) {
+                console.warn('Rivers data unavailable:', e);
+            }
+
+            // Pixel water waves (cute ocean animations)
+            var waveGroup = g.append('g').attr('class', 'ocean-waves');
+            var wavePositions = [
+                [65, 160], [110, 290], [45, 360], [85, 420],
+                [385, 130], [405, 260], [375, 360], [425, 190],
+                [645, 310], [675, 360], [615, 290],
+                [885, 210], [915, 310], [855, 160], [925, 410],
+                [305, 475], [505, 468], [705, 475],
+                [505, 28], [355, 35]
+            ];
+            wavePositions.forEach(function (pos, i) {
+                waveGroup.append('path')
+                    .attr('class', 'wave-pixel')
+                    .attr('d', 'M' + pos[0] + ',' + pos[1] +
+                        ' l1.5,-1 l1.5,1 l1.5,-1 l1.5,1 l1.5,-1 l1.5,1')
+                    .style('animation-delay', (i * 0.4 % 3).toFixed(1) + 's');
+            });
+
+            // Pixel wind dashes (cute breeze animations)
+            var windGroup = g.append('g').attr('class', 'ocean-wind');
+            var windPositions = [
+                [155, 210, -5], [505, 160, -3], [755, 260, -8],
+                [305, 310, 5], [825, 360, -4], [205, 430, 3],
+                [605, 110, -6], [455, 390, 4], [75, 250, -2],
+                [560, 320, 6], [780, 180, -5], [340, 140, 3]
+            ];
+            windPositions.forEach(function (pos, i) {
+                windGroup.append('path')
+                    .attr('class', 'wind-pixel')
+                    .attr('d', 'M' + pos[0] + ',' + pos[1] +
+                        ' h5 M' + (pos[0] + 1) + ',' + (pos[1] + 1.5) + ' h3.5')
+                    .attr('transform', 'rotate(' + pos[2] + ' ' + pos[0] + ' ' + pos[1] + ')')
+                    .style('animation-delay', (i * 0.6 % 4).toFixed(1) + 's');
             });
 
             setTimeout(function () {
@@ -652,7 +728,7 @@
                 .attr('data-label-id', id)
                 .attr('transform', 'translate(' + centroid[0] + ',' + centroid[1] + ')');
 
-            var textNode = label.append('text').text(name);
+            var textNode = label.append('text').text('✓ ' + name);
             var bbox = textNode.node().getBBox();
             var px = 4, py = 2;
 
@@ -770,9 +846,11 @@
                     '.country { fill: #e0dbd2; stroke: #d4cfc5; stroke-width: 0.3; }',
                     '.country.visited { fill: #7d8c6e; stroke: #6d7b5f; }',
                     '.graticule-fine { fill: none; stroke: #ece8e0; stroke-width: 0.15; opacity: 0.5; }',
-                    '.topo-line { fill: none; stroke: #d4cfc5; stroke-width: 0.15; opacity: 0.35; }',
-                    '.country-label rect { fill: #37352f; rx: 2; }',
-                    '.country-label text { fill: #faf8f5; font-family: monospace; font-size: 3.5px; font-weight: 500; letter-spacing: 0.04em; text-anchor: middle; dominant-baseline: central; text-transform: uppercase; }',
+                    '.river { fill: none; stroke: #d4cfc5; stroke-width: 0.35; opacity: 0.5; }',
+                    '.antarctica { fill: #e0dbd2; stroke: #d4cfc5; stroke-width: 0.3; }',
+                    '.wave-pixel, .wind-pixel { display: none; }',
+                    '.country-label rect { fill: #7d8c6e; rx: 2; }',
+                    '.country-label text { fill: #fff; font-family: monospace; font-size: 3.5px; font-weight: 500; letter-spacing: 0.04em; text-anchor: middle; dominant-baseline: central; text-transform: uppercase; }',
                     '.country-label { opacity: 1; }'
                 ].join('\n');
                 clone.prepend(styleEl);
