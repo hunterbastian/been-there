@@ -7,7 +7,7 @@
     <meta name="description" content="A minimal travel map. Click countries you've visited.">
     <meta name="theme-color" content="#faf8f5">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌍</text></svg>">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/geist@1/dist/mono/style.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap">
     <style>
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -36,7 +36,7 @@
             overflow: hidden;
             background: var(--bg);
             color: var(--text);
-            font-family: "Geist Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+            font-family: "Silkscreen", cursive;
             font-size: 14px;
             -webkit-font-smoothing: auto;
         }
@@ -191,6 +191,7 @@
             height: 100%;
             cursor: default;
             touch-action: none;
+            shape-rendering: crispEdges;
         }
 
         #map.panning {
@@ -204,21 +205,21 @@
         .graticule {
             fill: none;
             stroke: var(--graticule);
-            stroke-width: 0.3;
+            stroke-width: 0.5;
         }
 
         .graticule-fine {
             fill: none;
             stroke: var(--graticule);
-            stroke-width: 0.15;
-            opacity: 0.5;
+            stroke-width: 0.3;
+            opacity: 0.4;
         }
 
         .river {
             fill: none;
             stroke: var(--land-stroke);
-            stroke-width: 0.35;
-            opacity: 0.5;
+            stroke-width: 0.5;
+            opacity: 0.55;
             pointer-events: none;
         }
 
@@ -232,7 +233,7 @@
         .wave-pixel {
             fill: none;
             stroke: var(--land-stroke);
-            stroke-width: 0.3;
+            stroke-width: 0.5;
             opacity: 0;
             pointer-events: none;
             animation: wave-bob 3s ease-in-out infinite;
@@ -241,34 +242,57 @@
         .wind-pixel {
             fill: none;
             stroke: var(--text-tertiary);
-            stroke-width: 0.25;
+            stroke-width: 0.4;
             opacity: 0;
             pointer-events: none;
             animation: wind-drift 5s ease-in-out infinite;
         }
 
         @keyframes wave-bob {
-            0%, 100% { opacity: 0.25; transform: translateY(0); }
-            50% { opacity: 0.45; transform: translateY(-0.8px); }
+            0%, 100% { opacity: 0.35; transform: translateY(0); }
+            50% { opacity: 0.6; transform: translateY(-1.2px); }
         }
 
         @keyframes wind-drift {
             0% { opacity: 0; transform: translateX(0); }
-            20% { opacity: 0.2; }
-            80% { opacity: 0.2; }
-            100% { opacity: 0; transform: translateX(4px); }
+            20% { opacity: 0.3; }
+            80% { opacity: 0.3; }
+            100% { opacity: 0; transform: translateX(6px); }
+        }
+
+        .ocean-label {
+            fill: var(--text-tertiary);
+            font-family: "Silkscreen", cursive;
+            font-size: 3px;
+            text-anchor: middle;
+            letter-spacing: 0.3em;
+            opacity: 0.25;
+            pointer-events: none;
+        }
+
+        .compass-rose line, .compass-rose path {
+            stroke: var(--text-tertiary);
+            stroke-width: 0.4;
+            fill: none;
+        }
+
+        .compass-rose text {
+            fill: var(--text-tertiary);
+            font-family: "Silkscreen", cursive;
+            font-size: 3px;
+            text-anchor: middle;
         }
 
         .boundary {
             fill: none;
-            stroke: rgba(55, 53, 47, 0.06);
-            stroke-width: 0.3;
+            stroke: rgba(55, 53, 47, 0.08);
+            stroke-width: 0.5;
         }
 
         .country {
             fill: var(--land);
             stroke: var(--land-stroke);
-            stroke-width: 0.3;
+            stroke-width: 0.5;
             cursor: pointer;
             transition: fill 0.2s ease, stroke 0.2s ease;
         }
@@ -323,7 +347,7 @@
 
         .country-label text {
             fill: #fff;
-            font-family: "Geist Mono", ui-monospace, monospace;
+            font-family: "Silkscreen", cursive;
             font-size: 3.5px;
             font-weight: 500;
             letter-spacing: 0.04em;
@@ -566,6 +590,17 @@
 
         var g = svg.append('g');
 
+        // Pixel art ocean stipple pattern
+        var defs = svg.append('defs');
+        var stipple = defs.append('pattern')
+            .attr('id', 'ocean-stipple')
+            .attr('width', 5)
+            .attr('height', 5)
+            .attr('patternUnits', 'userSpaceOnUse');
+        stipple.append('circle')
+            .attr('cx', 2.5).attr('cy', 2.5).attr('r', 0.4)
+            .attr('fill', '#d4cfc5').attr('opacity', 0.15);
+
         // Zoom
         var mapEl = document.getElementById('map');
         var zoomBehavior = d3.zoom()
@@ -588,6 +623,13 @@
             .datum({ type: 'Sphere' })
             .attr('class', 'sphere')
             .attr('d', pathGen);
+
+        // Ocean stipple texture
+        g.append('path')
+            .datum({ type: 'Sphere' })
+            .attr('d', pathGen)
+            .attr('fill', 'url(#ocean-stipple)')
+            .attr('pointer-events', 'none');
 
         // Graticule (major)
         g.append('path')
@@ -677,7 +719,7 @@
                 waveGroup.append('path')
                     .attr('class', 'wave-pixel')
                     .attr('d', 'M' + pos[0] + ',' + pos[1] +
-                        ' l1.5,-1 l1.5,1 l1.5,-1 l1.5,1 l1.5,-1 l1.5,1')
+                        ' l2,-1.5 l2,1.5 l2,-1.5 l2,1.5 l2,-1.5 l2,1.5')
                     .style('animation-delay', (i * 0.4 % 3).toFixed(1) + 's');
             });
 
@@ -693,10 +735,44 @@
                 windGroup.append('path')
                     .attr('class', 'wind-pixel')
                     .attr('d', 'M' + pos[0] + ',' + pos[1] +
-                        ' h5 M' + (pos[0] + 1) + ',' + (pos[1] + 1.5) + ' h3.5')
+                        ' h8 M' + (pos[0] + 1.5) + ',' + (pos[1] + 2) + ' h5.5')
                     .attr('transform', 'rotate(' + pos[2] + ' ' + pos[0] + ' ' + pos[1] + ')')
                     .style('animation-delay', (i * 0.6 % 4).toFixed(1) + 's');
             });
+
+            // Ocean name labels (vintage atlas feel)
+            var oceanLabels = [
+                [100, 310, 'PACIFIC'], [400, 290, 'ATLANTIC'],
+                [650, 345, 'INDIAN'], [880, 280, 'PACIFIC']
+            ];
+            var oceanLabelGroup = g.append('g').attr('class', 'ocean-labels');
+            oceanLabels.forEach(function (ol) {
+                oceanLabelGroup.append('text')
+                    .attr('x', ol[0]).attr('y', ol[1])
+                    .attr('class', 'ocean-label')
+                    .text(ol[2]);
+            });
+
+            // Pixel compass rose
+            var compass = g.append('g')
+                .attr('class', 'compass-rose')
+                .attr('transform', 'translate(900, 65)');
+            compass.append('path')
+                .attr('d', 'M0,-10 v20 M-10,0 h20');
+            compass.append('path')
+                .attr('d', 'M0,-3 L2,0 L0,3 L-2,0 Z')
+                .attr('fill', 'var(--text-tertiary)')
+                .attr('stroke', 'none')
+                .attr('opacity', 0.4);
+            compass.append('text')
+                .attr('y', -13).text('N');
+            compass.append('text')
+                .attr('y', 16).attr('dominant-baseline', 'hanging').text('S');
+            compass.append('text')
+                .attr('x', 14).attr('dominant-baseline', 'central').text('E');
+            compass.append('text')
+                .attr('x', -14).attr('dominant-baseline', 'central')
+                .attr('text-anchor', 'end').text('W');
 
             setTimeout(function () {
                 d3.selectAll('.country').classed('revealing', false);
@@ -841,16 +917,19 @@
                 var styleEl = document.createElementNS('http://www.w3.org/2000/svg', 'style');
                 styleEl.textContent = [
                     '.sphere { fill: #f3f0ea; }',
-                    '.graticule { fill: none; stroke: #ece8e0; stroke-width: 0.3; }',
-                    '.boundary { fill: none; stroke: rgba(55,53,47,0.06); stroke-width: 0.3; }',
-                    '.country { fill: #e0dbd2; stroke: #d4cfc5; stroke-width: 0.3; }',
+                    '.graticule { fill: none; stroke: #ece8e0; stroke-width: 0.5; }',
+                    '.boundary { fill: none; stroke: rgba(55,53,47,0.08); stroke-width: 0.5; }',
+                    '.country { fill: #e0dbd2; stroke: #d4cfc5; stroke-width: 0.5; }',
                     '.country.visited { fill: #7d8c6e; stroke: #6d7b5f; }',
-                    '.graticule-fine { fill: none; stroke: #ece8e0; stroke-width: 0.15; opacity: 0.5; }',
-                    '.river { fill: none; stroke: #d4cfc5; stroke-width: 0.35; opacity: 0.5; }',
+                    '.graticule-fine { fill: none; stroke: #ece8e0; stroke-width: 0.3; opacity: 0.4; }',
+                    '.river { fill: none; stroke: #d4cfc5; stroke-width: 0.5; opacity: 0.55; }',
                     '.antarctica { fill: #e0dbd2; stroke: #d4cfc5; stroke-width: 0.3; }',
                     '.wave-pixel, .wind-pixel { display: none; }',
                     '.country-label rect { fill: #7d8c6e; rx: 2; }',
-                    '.country-label text { fill: #fff; font-family: monospace; font-size: 3.5px; font-weight: 500; letter-spacing: 0.04em; text-anchor: middle; dominant-baseline: central; text-transform: uppercase; }',
+                    '.country-label text { fill: #fff; font-family: "Silkscreen", cursive; font-size: 3.5px; font-weight: 500; letter-spacing: 0.04em; text-anchor: middle; dominant-baseline: central; text-transform: uppercase; }',
+                    '.ocean-label { fill: #a3a09a; font-family: "Silkscreen", cursive; font-size: 3px; text-anchor: middle; letter-spacing: 0.3em; opacity: 0.25; }',
+                    '.compass-rose line, .compass-rose path { stroke: #a3a09a; stroke-width: 0.4; fill: none; }',
+                    '.compass-rose text { fill: #a3a09a; font-family: "Silkscreen", cursive; font-size: 3px; text-anchor: middle; }',
                     '.country-label { opacity: 1; }'
                 ].join('\n');
                 clone.prepend(styleEl);
@@ -878,11 +957,11 @@
 
                     // Watermark
                     ctx.fillStyle = 'rgba(55, 53, 47, 0.15)';
-                    ctx.font = '500 20px "Geist Mono", monospace';
+                    ctx.font = '500 16px "Silkscreen", cursive';
                     ctx.textAlign = 'right';
                     ctx.fillText('been there', canvas.width - 48, canvas.height - 32);
 
-                    ctx.font = '16px "Geist Mono", monospace';
+                    ctx.font = '14px "Silkscreen", cursive';
                     ctx.textAlign = 'left';
                     ctx.fillText(visited.size + ' / ' + totalCountries, 48, canvas.height - 34);
 
