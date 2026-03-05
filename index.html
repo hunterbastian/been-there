@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>been there</title>
+    <meta name="description" content="A minimal travel map. Click countries you've visited.">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌍</text></svg>">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #ffffff;
+            --surface: #ffffff;
+            --ocean: #f9f9f7;
+            --land: #e8e7e3;
+            --land-stroke: #dddcd8;
+            --land-hover: #deddd8;
+            --visited: #d4a373;
+            --visited-stroke: #c49366;
+            --visited-hover: #c99868;
+            --graticule: #f0efeb;
+            --text: #37352f;
+            --text-secondary: #787774;
+            --text-tertiary: #b4b4b0;
+            --border: rgba(55, 53, 47, 0.09);
+            --hover-bg: rgba(55, 53, 47, 0.04);
+            --active-bg: rgba(55, 53, 47, 0.06);
+            --accent: #d4a373;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif;
+            font-size: 14px;
+            -webkit-font-smoothing: auto;
+        }
+
+        /* ── Loading ── */
+        #loading {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            background: var(--bg);
+            z-index: 100;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+        }
+
+        #loading.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        #loading p {
+            font-size: 14px;
+            color: var(--text-tertiary);
+        }
+
+        .loader {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-top-color: var(--text-secondary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ── Header ── */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px 0 16px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            z-index: 50;
+            user-select: none;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        h1 {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        h1 .icon {
+            font-size: 18px;
+            line-height: 1;
+        }
+
+        .counter {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            font-size: 12px;
+            color: var(--text-tertiary);
+            background: var(--hover-bg);
+            border-radius: 4px;
+            padding: 2px 8px;
+        }
+
+        #count {
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-right: 2px;
+        }
+
+        .counter .sep {
+            margin: 0 2px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        button {
+            font-family: inherit;
+            font-weight: 400;
+            font-size: 13px;
+            color: var(--text-secondary);
+            background: transparent;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            transition: background 0.1s ease;
+            white-space: nowrap;
+            line-height: 1.4;
+        }
+
+        button:hover {
+            background: var(--hover-bg);
+        }
+
+        button:active {
+            background: var(--active-bg);
+        }
+
+        button:disabled {
+            opacity: 0.4;
+            cursor: default;
+        }
+
+        button.confirm {
+            color: #e03e3e;
+        }
+
+        button.success {
+            color: #0f7b6c;
+        }
+
+        /* ── Map ── */
+        #map-container {
+            position: fixed;
+            inset: 0;
+            padding-top: 45px;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            cursor: default;
+            touch-action: none;
+        }
+
+        #map.panning {
+            cursor: grabbing;
+        }
+
+        .sphere {
+            fill: var(--ocean);
+        }
+
+        .graticule {
+            fill: none;
+            stroke: var(--graticule);
+            stroke-width: 0.3;
+        }
+
+        .boundary {
+            fill: none;
+            stroke: rgba(55, 53, 47, 0.06);
+            stroke-width: 0.3;
+        }
+
+        .country {
+            fill: var(--land);
+            stroke: var(--land-stroke);
+            stroke-width: 0.3;
+            cursor: pointer;
+            transition: fill 0.25s ease, stroke 0.25s ease;
+        }
+
+        .country:hover {
+            fill: var(--land-hover);
+        }
+
+        .country.visited {
+            fill: var(--visited);
+            stroke: var(--visited-stroke);
+        }
+
+        .country.visited:hover {
+            fill: var(--visited-hover);
+        }
+
+        .country.pulse {
+            animation: click-pulse 0.3s ease-out;
+        }
+
+        @keyframes click-pulse {
+            0% { filter: brightness(1.08); }
+            100% { filter: brightness(1); }
+        }
+
+        @keyframes reveal {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .country.revealing {
+            opacity: 0;
+            animation: reveal 0.5s ease forwards;
+        }
+
+        /* ── Tooltip ── */
+        #tooltip {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: inherit;
+            font-weight: 400;
+            font-size: 13px;
+            color: var(--text);
+            background: var(--surface);
+            padding: 6px 16px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 8px rgba(15, 15, 15, 0.06), 0 0 0 1px rgba(15, 15, 15, 0.04);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+            z-index: 40;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        #tooltip.visible {
+            opacity: 1;
+        }
+
+        #tooltip-check {
+            color: var(--accent);
+            font-weight: 600;
+            display: none;
+        }
+
+        #tooltip-check.show {
+            display: inline;
+        }
+
+        /* ── Zoom Controls ── */
+        #zoom-controls {
+            position: fixed;
+            bottom: 24px;
+            right: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            z-index: 40;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(15, 15, 15, 0.06);
+            overflow: hidden;
+            opacity: 0.6;
+            transition: opacity 0.2s ease;
+        }
+
+        #zoom-controls:hover {
+            opacity: 1;
+        }
+
+        #zoom-controls button {
+            width: 30px;
+            height: 28px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            color: var(--text-secondary);
+            border-radius: 0;
+        }
+
+        #zoom-controls button:not(:last-child) {
+            border-bottom: 1px solid var(--border);
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 640px) {
+            header {
+                padding: 0 10px 0 12px;
+                height: 42px;
+            }
+            h1 { font-size: 13px; }
+            h1 .icon { font-size: 16px; }
+            .header-left { gap: 10px; }
+            .counter { font-size: 11px; padding: 2px 6px; }
+            button { font-size: 12px; padding: 3px 6px; }
+            #map-container { padding-top: 42px; }
+            #tooltip {
+                bottom: 16px;
+                font-size: 12px;
+                padding: 5px 12px;
+            }
+            #zoom-controls {
+                bottom: 16px;
+                right: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">
+        <div class="loader"></div>
+        <p>Loading map&hellip;</p>
+    </div>
+
+    <header>
+        <div class="header-left">
+            <h1><span class="icon">🌍</span> been there</h1>
+            <div class="counter">
+                <span id="count">0</span>
+                <span class="sep">/</span>
+                <span id="total">&mdash;</span>
+            </div>
+        </div>
+        <div class="header-right">
+            <button id="export-btn">Export</button>
+            <button id="reset-btn">Reset</button>
+        </div>
+    </header>
+
+    <div id="map-container">
+        <svg id="map"></svg>
+    </div>
+
+    <div id="tooltip">
+        <span id="tooltip-name"></span>
+        <span id="tooltip-check">&check;</span>
+    </div>
+
+    <div id="zoom-controls">
+        <button id="zoom-in-btn" title="Zoom in">+</button>
+        <button id="zoom-out-btn" title="Zoom out">&minus;</button>
+        <button id="zoom-reset-btn" title="Reset view">&#8634;</button>
+    </div>
+
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
+    <script>
+    (async function () {
+
+        // ── Country name mapping (ISO 3166-1 numeric codes) ──
+        var NAMES = {
+            "004":"Afghanistan","008":"Albania","012":"Algeria","024":"Angola",
+            "028":"Antigua and Barbuda","032":"Argentina","036":"Australia",
+            "040":"Austria","044":"Bahamas","048":"Bahrain","050":"Bangladesh",
+            "051":"Armenia","052":"Barbados","056":"Belgium","064":"Bhutan",
+            "068":"Bolivia","070":"Bosnia and Herzegovina","072":"Botswana",
+            "076":"Brazil","084":"Belize","090":"Solomon Islands","096":"Brunei",
+            "100":"Bulgaria","104":"Myanmar","108":"Burundi","112":"Belarus",
+            "116":"Cambodia","120":"Cameroon","124":"Canada",
+            "140":"Central African Republic","144":"Sri Lanka","148":"Chad",
+            "152":"Chile","156":"China","158":"Taiwan","170":"Colombia",
+            "174":"Comoros","178":"Congo","180":"Dem. Rep. Congo",
+            "188":"Costa Rica","191":"Croatia","192":"Cuba","196":"Cyprus",
+            "203":"Czechia","204":"Benin","208":"Denmark",
+            "212":"Dominica","214":"Dominican Republic","218":"Ecuador",
+            "222":"El Salvador","226":"Equatorial Guinea","231":"Ethiopia",
+            "232":"Eritrea","233":"Estonia","238":"Falkland Islands","242":"Fiji",
+            "246":"Finland","250":"France","258":"French Polynesia",
+            "260":"Fr. S. Antarctic Lands","262":"Djibouti","266":"Gabon",
+            "268":"Georgia","270":"Gambia","275":"Palestine","276":"Germany",
+            "288":"Ghana","296":"Kiribati","300":"Greece","304":"Greenland",
+            "308":"Grenada","320":"Guatemala","324":"Guinea","328":"Guyana",
+            "332":"Haiti","336":"Vatican City","340":"Honduras","348":"Hungary",
+            "352":"Iceland","356":"India","360":"Indonesia","364":"Iran",
+            "368":"Iraq","372":"Ireland","376":"Israel","380":"Italy",
+            "384":"Ivory Coast","388":"Jamaica","392":"Japan",
+            "398":"Kazakhstan","400":"Jordan","404":"Kenya",
+            "408":"North Korea","410":"South Korea","414":"Kuwait",
+            "417":"Kyrgyzstan","418":"Laos","422":"Lebanon","426":"Lesotho",
+            "428":"Latvia","430":"Liberia","434":"Libya","440":"Lithuania",
+            "442":"Luxembourg","450":"Madagascar","454":"Malawi",
+            "458":"Malaysia","462":"Maldives","466":"Mali","470":"Malta",
+            "478":"Mauritania","480":"Mauritius","484":"Mexico","492":"Monaco",
+            "496":"Mongolia","498":"Moldova","499":"Montenegro","504":"Morocco",
+            "508":"Mozambique","512":"Oman","516":"Namibia","520":"Nauru",
+            "524":"Nepal","528":"Netherlands","540":"New Caledonia",
+            "548":"Vanuatu","554":"New Zealand","558":"Nicaragua","562":"Niger",
+            "566":"Nigeria","578":"Norway","583":"Micronesia",
+            "584":"Marshall Islands","585":"Palau","586":"Pakistan",
+            "591":"Panama","598":"Papua New Guinea","600":"Paraguay",
+            "604":"Peru","608":"Philippines","616":"Poland","620":"Portugal",
+            "624":"Guinea-Bissau","626":"East Timor","630":"Puerto Rico",
+            "634":"Qatar","642":"Romania","643":"Russia","646":"Rwanda",
+            "659":"St. Kitts and Nevis","662":"Saint Lucia",
+            "670":"St. Vincent and Grenadines","674":"San Marino",
+            "678":"Sao Tome and Principe","682":"Saudi Arabia","686":"Senegal",
+            "688":"Serbia","690":"Seychelles","694":"Sierra Leone",
+            "702":"Singapore","703":"Slovakia","704":"Vietnam","705":"Slovenia",
+            "706":"Somalia","710":"South Africa","716":"Zimbabwe","724":"Spain",
+            "728":"South Sudan","729":"Sudan","732":"Western Sahara",
+            "740":"Suriname","748":"Eswatini","752":"Sweden",
+            "756":"Switzerland","760":"Syria","762":"Tajikistan",
+            "764":"Thailand","768":"Togo","776":"Tonga",
+            "780":"Trinidad and Tobago","784":"UAE","788":"Tunisia",
+            "792":"Turkey","795":"Turkmenistan","798":"Tuvalu","800":"Uganda",
+            "804":"Ukraine","807":"North Macedonia","818":"Egypt",
+            "826":"United Kingdom","834":"Tanzania","840":"United States",
+            "854":"Burkina Faso","858":"Uruguay","860":"Uzbekistan",
+            "862":"Venezuela","882":"Samoa","887":"Yemen","894":"Zambia",
+            "-99":"Northern Cyprus","900":"Kosovo"
+        };
+
+        // ── State ──
+        var STORAGE_KEY = 'been-there-visited';
+        var visited;
+        try {
+            visited = new Set(JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'));
+        } catch (e) {
+            visited = new Set();
+        }
+        var totalCountries = 0;
+
+        // ── DOM refs ──
+        var loading = document.getElementById('loading');
+        var countEl = document.getElementById('count');
+        var totalEl = document.getElementById('total');
+        var tooltipEl = document.getElementById('tooltip');
+        var tooltipName = document.getElementById('tooltip-name');
+        var tooltipCheck = document.getElementById('tooltip-check');
+
+        // ── SVG setup ──
+        var W = 960, H = 500;
+        var svg = d3.select('#map')
+            .attr('viewBox', '0 0 ' + W + ' ' + H)
+            .attr('preserveAspectRatio', 'xMidYMid meet');
+
+        var projection = d3.geoNaturalEarth1()
+            .fitSize([W, H], { type: 'Sphere' });
+        var pathGen = d3.geoPath(projection);
+
+        var g = svg.append('g');
+
+        // Zoom
+        var mapEl = document.getElementById('map');
+        var zoomBehavior = d3.zoom()
+            .scaleExtent([1, 8])
+            .on('start', function (event) {
+                if (event.sourceEvent && event.sourceEvent.type !== 'wheel') {
+                    mapEl.classList.add('panning');
+                }
+            })
+            .on('zoom', function (event) {
+                g.attr('transform', event.transform);
+            })
+            .on('end', function () {
+                mapEl.classList.remove('panning');
+            });
+        svg.call(zoomBehavior);
+
+        // Ocean
+        g.append('path')
+            .datum({ type: 'Sphere' })
+            .attr('class', 'sphere')
+            .attr('d', pathGen);
+
+        // Graticule
+        g.append('path')
+            .datum(d3.geoGraticule().step([30, 30])())
+            .attr('class', 'graticule')
+            .attr('d', pathGen);
+
+        // ── Load & render ──
+        try {
+            var res = await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json');
+            if (!res.ok) throw new Error(res.statusText);
+            var world = await res.json();
+
+            var countries = topojson.feature(world, world.objects.countries);
+            var borders = topojson.mesh(world, world.objects.countries, function (a, b) { return a !== b; });
+
+            var features = countries.features.filter(function (f) { return f.id !== '010'; });
+            totalCountries = features.length;
+            totalEl.textContent = totalCountries;
+
+            g.selectAll('.country')
+                .data(features)
+                .join('path')
+                .attr('class', function (d) {
+                    var cls = 'country revealing';
+                    if (visited.has(String(d.id))) cls += ' visited';
+                    return cls;
+                })
+                .attr('d', pathGen)
+                .attr('data-id', function (d) { return d.id; })
+                .style('animation-delay', function (d) {
+                    var c = pathGen.centroid(d);
+                    if (isNaN(c[0])) return '0s';
+                    return ((c[0] / W) * 1.0).toFixed(2) + 's';
+                })
+                .on('click', handleClick)
+                .on('mouseenter', handleEnter)
+                .on('mouseleave', handleLeave);
+
+            g.append('path')
+                .datum(borders)
+                .attr('class', 'boundary')
+                .attr('d', pathGen);
+
+            setTimeout(function () {
+                d3.selectAll('.country').classed('revealing', false);
+            }, 1800);
+
+            updateCounter();
+            loading.classList.add('hidden');
+
+        } catch (err) {
+            console.error('Failed to load map:', err);
+            loading.querySelector('p').textContent = 'Failed to load map data';
+            loading.querySelector('.loader').style.display = 'none';
+        }
+
+        // ── Handlers ──
+        function handleClick(event, d) {
+            event.stopPropagation();
+            var id = String(d.id);
+            var el = d3.select(this);
+
+            if (visited.has(id)) {
+                visited.delete(id);
+                el.classed('visited', false);
+            } else {
+                visited.add(id);
+                el.classed('visited', true);
+            }
+
+            el.classed('pulse', false);
+            void this.offsetWidth;
+            el.classed('pulse', true);
+
+            save();
+            updateCounter();
+            showTooltip(id);
+        }
+
+        function handleEnter(event, d) {
+            showTooltip(String(d.id));
+        }
+
+        function handleLeave() {
+            tooltipEl.classList.remove('visible');
+        }
+
+        function showTooltip(id) {
+            var name = NAMES[id] || ('Unknown (' + id + ')');
+            tooltipName.textContent = name;
+            if (visited.has(id)) {
+                tooltipCheck.classList.add('show');
+            } else {
+                tooltipCheck.classList.remove('show');
+            }
+            tooltipEl.classList.add('visible');
+        }
+
+        function updateCounter() {
+            countEl.textContent = visited.size;
+        }
+
+        function save() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(visited)));
+            } catch (e) {
+                console.warn('localStorage save failed:', e);
+            }
+        }
+
+        // ── Zoom controls ──
+        document.getElementById('zoom-in-btn').addEventListener('click', function () {
+            svg.transition().duration(300).call(zoomBehavior.scaleBy, 1.5);
+        });
+
+        document.getElementById('zoom-out-btn').addEventListener('click', function () {
+            svg.transition().duration(300).call(zoomBehavior.scaleBy, 1 / 1.5);
+        });
+
+        document.getElementById('zoom-reset-btn').addEventListener('click', function () {
+            svg.transition().duration(500).call(zoomBehavior.transform, d3.zoomIdentity);
+        });
+
+        // ── Export PNG (light mode) ──
+        document.getElementById('export-btn').addEventListener('click', async function () {
+            var btn = this;
+            btn.textContent = 'Exporting\u2026';
+            btn.disabled = true;
+
+            try {
+                var svgEl = document.getElementById('map');
+                var clone = svgEl.cloneNode(true);
+
+                var gEl = clone.querySelector('g');
+                if (gEl) gEl.removeAttribute('transform');
+
+                var styleEl = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+                styleEl.textContent = [
+                    '.sphere { fill: #f9f9f7; }',
+                    '.graticule { fill: none; stroke: #f0efeb; stroke-width: 0.3; }',
+                    '.boundary { fill: none; stroke: rgba(55,53,47,0.06); stroke-width: 0.3; }',
+                    '.country { fill: #e8e7e3; stroke: #dddcd8; stroke-width: 0.3; }',
+                    '.country.visited { fill: #d4a373; stroke: #c49366; }'
+                ].join('\n');
+                clone.prepend(styleEl);
+
+                clone.querySelectorAll('.revealing, .pulse').forEach(function (el) {
+                    el.classList.remove('revealing', 'pulse');
+                });
+
+                var svgData = new XMLSerializer().serializeToString(clone);
+                var blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+                var url = URL.createObjectURL(blob);
+
+                var img = new Image();
+                img.onload = function () {
+                    var canvas = document.createElement('canvas');
+                    var scale = 2;
+                    canvas.width = W * scale;
+                    canvas.height = H * scale;
+                    var ctx = canvas.getContext('2d');
+
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                    // Watermark
+                    ctx.fillStyle = 'rgba(55, 53, 47, 0.15)';
+                    ctx.font = '500 20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+                    ctx.textAlign = 'right';
+                    ctx.fillText('been there', canvas.width - 48, canvas.height - 32);
+
+                    ctx.font = '16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+                    ctx.textAlign = 'left';
+                    ctx.fillText(visited.size + ' / ' + totalCountries, 48, canvas.height - 34);
+
+                    var a = document.createElement('a');
+                    a.download = 'been-there-map.png';
+                    a.href = canvas.toDataURL('image/png');
+                    a.click();
+
+                    URL.revokeObjectURL(url);
+
+                    btn.textContent = 'Done!';
+                    btn.classList.add('success');
+                    setTimeout(function () {
+                        btn.textContent = 'Export';
+                        btn.disabled = false;
+                        btn.classList.remove('success');
+                    }, 1500);
+                };
+
+                img.onerror = function () {
+                    URL.revokeObjectURL(url);
+                    throw new Error('Image render failed');
+                };
+
+                img.src = url;
+
+            } catch (err) {
+                console.error('Export failed:', err);
+                btn.textContent = 'Error';
+                setTimeout(function () {
+                    btn.textContent = 'Export';
+                    btn.disabled = false;
+                }, 1500);
+            }
+        });
+
+        // ── Reset ──
+        var resetBtn = document.getElementById('reset-btn');
+        var resetTimer = null;
+
+        resetBtn.addEventListener('click', function () {
+            if (this.classList.contains('confirm')) {
+                visited.clear();
+                save();
+                d3.selectAll('.country').classed('visited', false);
+                updateCounter();
+                this.classList.remove('confirm');
+                this.textContent = 'Reset';
+                clearTimeout(resetTimer);
+            } else {
+                this.classList.add('confirm');
+                this.textContent = 'Sure?';
+                var self = this;
+                resetTimer = setTimeout(function () {
+                    self.classList.remove('confirm');
+                    self.textContent = 'Reset';
+                }, 3000);
+            }
+        });
+
+    })();
+    </script>
+</body>
+</html>
