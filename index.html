@@ -5,30 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>been there</title>
     <meta name="description" content="A minimal travel map. Click countries you've visited.">
-    <meta name="theme-color" content="#faf8f5">
+    <meta name="theme-color" content="#faf6ee">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌍</text></svg>">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap">
     <style>
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
-            --bg: #faf8f5;
-            --surface: #faf8f5;
-            --ocean: #f3f0ea;
-            --land: #e0dbd2;
-            --land-stroke: #d4cfc5;
-            --land-hover: #d6d1c7;
-            --visited: #7d8c6e;
-            --visited-stroke: #6d7b5f;
-            --visited-hover: #728164;
-            --graticule: #ece8e0;
-            --text: #37352f;
-            --text-secondary: #787774;
-            --text-tertiary: #a3a09a;
-            --border: rgba(55, 53, 47, 0.09);
-            --hover-bg: rgba(55, 53, 47, 0.04);
-            --active-bg: rgba(55, 53, 47, 0.06);
-            --accent: #7d8c6e;
+            --bg: #faf6ee;
+            --surface: #faf6ee;
+            --ocean: #d4e2e8;
+            --land: #ddd4b8;
+            --land-stroke: #ccc3a0;
+            --land-hover: #d2cab0;
+            --visited: #5e9446;
+            --visited-stroke: #4e8436;
+            --visited-hover: #548a3e;
+            --graticule: #bdd0d6;
+            --text: #3a3020;
+            --text-secondary: #6b5e42;
+            --text-tertiary: #9b8e72;
+            --border: rgba(58, 48, 32, 0.09);
+            --hover-bg: rgba(58, 48, 32, 0.04);
+            --active-bg: rgba(58, 48, 32, 0.06);
+            --accent: #5e9446;
+            --sparkle: #f0d060;
         }
 
         html, body {
@@ -217,9 +218,9 @@
 
         .river {
             fill: none;
-            stroke: var(--land-stroke);
+            stroke: #a0bcc5;
             stroke-width: 0.5;
-            opacity: 0.55;
+            opacity: 0.6;
             pointer-events: none;
         }
 
@@ -232,7 +233,7 @@
 
         .wave-pixel {
             fill: none;
-            stroke: var(--land-stroke);
+            stroke: #a8c0c8;
             stroke-width: 0.8;
             opacity: 0;
             pointer-events: none;
@@ -241,7 +242,7 @@
 
         .wind-pixel {
             fill: none;
-            stroke: var(--text-tertiary);
+            stroke: #8ba8b2;
             stroke-width: 0.7;
             opacity: 0;
             pointer-events: none;
@@ -258,6 +259,21 @@
             15% { opacity: 0.45; }
             85% { opacity: 0.45; }
             100% { opacity: 0; transform: translateX(8px); }
+        }
+
+        .sparkle-pixel {
+            pointer-events: none;
+            opacity: 0;
+            animation: sparkle-twinkle 3s ease-in-out infinite;
+        }
+
+        @keyframes sparkle-twinkle {
+            0%, 100% { opacity: 0; transform: scale(0.6); }
+            20% { opacity: 0; }
+            40% { opacity: 0.9; transform: scale(1.2); }
+            50% { opacity: 1; transform: scale(1); }
+            60% { opacity: 0.9; transform: scale(1.1); }
+            80% { opacity: 0; transform: scale(0.6); }
         }
 
         .ocean-label {
@@ -285,7 +301,7 @@
 
         .boundary {
             fill: none;
-            stroke: rgba(55, 53, 47, 0.08);
+            stroke: rgba(58, 48, 32, 0.08);
             stroke-width: 0.5;
         }
 
@@ -599,7 +615,7 @@
             .attr('patternUnits', 'userSpaceOnUse');
         stipple.append('circle')
             .attr('cx', 2.5).attr('cy', 2.5).attr('r', 0.4)
-            .attr('fill', '#d4cfc5').attr('opacity', 0.15);
+            .attr('fill', '#a0bcc5').attr('opacity', 0.18);
 
         // Zoom
         var mapEl = document.getElementById('map');
@@ -779,6 +795,32 @@
                 .attr('x', -14).attr('dominant-baseline', 'central')
                 .attr('text-anchor', 'end').text('W');
 
+            // Stardew sparkle/twinkle pixels (golden + cross shapes)
+            var sparkleGroup = g.append('g').attr('class', 'sparkles');
+            var sparklePositions = [
+                [70, 180], [140, 400], [45, 300], [110, 460],
+                [390, 150], [420, 350], [360, 250],
+                [650, 320], [690, 280], [620, 400],
+                [880, 240], [910, 350], [850, 180],
+                [500, 40], [300, 470], [750, 440],
+                [200, 260], [560, 370], [480, 130]
+            ];
+            sparklePositions.forEach(function (pos, i) {
+                var x = pos[0], y = pos[1];
+                var size = 1.2 + (i % 3) * 0.4;
+                sparkleGroup.append('path')
+                    .attr('class', 'sparkle-pixel')
+                    .attr('d',
+                        'M' + x + ',' + (y - size) +
+                        ' v' + (size * 2) +
+                        ' M' + (x - size) + ',' + y +
+                        ' h' + (size * 2))
+                    .attr('stroke', '#f0d060')
+                    .attr('stroke-width', 0.6)
+                    .attr('fill', 'none')
+                    .style('animation-delay', (i * 0.7 % 3).toFixed(1) + 's');
+            });
+
             setTimeout(function () {
                 d3.selectAll('.country').classed('revealing', false);
             }, 1800);
@@ -921,20 +963,20 @@
 
                 var styleEl = document.createElementNS('http://www.w3.org/2000/svg', 'style');
                 styleEl.textContent = [
-                    '.sphere { fill: #f3f0ea; }',
-                    '.graticule { fill: none; stroke: #ece8e0; stroke-width: 0.5; }',
-                    '.boundary { fill: none; stroke: rgba(55,53,47,0.08); stroke-width: 0.5; }',
-                    '.country { fill: #e0dbd2; stroke: #d4cfc5; stroke-width: 0.5; }',
-                    '.country.visited { fill: #7d8c6e; stroke: #6d7b5f; }',
-                    '.graticule-fine { fill: none; stroke: #ece8e0; stroke-width: 0.3; opacity: 0.4; }',
-                    '.river { fill: none; stroke: #d4cfc5; stroke-width: 0.5; opacity: 0.55; }',
-                    '.antarctica { fill: #e0dbd2; stroke: #d4cfc5; stroke-width: 0.3; }',
-                    '.wave-pixel, .wind-pixel { display: none; }',
-                    '.country-label rect { fill: #7d8c6e; rx: 2; }',
+                    '.sphere { fill: #d4e2e8; }',
+                    '.graticule { fill: none; stroke: #bdd0d6; stroke-width: 0.5; }',
+                    '.boundary { fill: none; stroke: rgba(58,48,32,0.08); stroke-width: 0.5; }',
+                    '.country { fill: #ddd4b8; stroke: #ccc3a0; stroke-width: 0.5; }',
+                    '.country.visited { fill: #5e9446; stroke: #4e8436; }',
+                    '.graticule-fine { fill: none; stroke: #bdd0d6; stroke-width: 0.3; opacity: 0.4; }',
+                    '.river { fill: none; stroke: #a0bcc5; stroke-width: 0.5; opacity: 0.55; }',
+                    '.antarctica { fill: #ddd4b8; stroke: #ccc3a0; stroke-width: 0.3; }',
+                    '.wave-pixel, .wind-pixel, .sparkle-pixel { display: none; }',
+                    '.country-label rect { fill: #5e9446; rx: 2; }',
                     '.country-label text { fill: #fff; font-family: "Silkscreen", cursive; font-size: 3.5px; font-weight: 500; letter-spacing: 0.04em; text-anchor: middle; dominant-baseline: central; text-transform: uppercase; }',
-                    '.ocean-label { fill: #a3a09a; font-family: "Silkscreen", cursive; font-size: 3px; text-anchor: middle; letter-spacing: 0.3em; opacity: 0.25; }',
-                    '.compass-rose line, .compass-rose path { stroke: #a3a09a; stroke-width: 0.4; fill: none; }',
-                    '.compass-rose text { fill: #a3a09a; font-family: "Silkscreen", cursive; font-size: 3px; text-anchor: middle; }',
+                    '.ocean-label { fill: #9b8e72; font-family: "Silkscreen", cursive; font-size: 3px; text-anchor: middle; letter-spacing: 0.3em; opacity: 0.25; }',
+                    '.compass-rose line, .compass-rose path { stroke: #9b8e72; stroke-width: 0.4; fill: none; }',
+                    '.compass-rose text { fill: #9b8e72; font-family: "Silkscreen", cursive; font-size: 3px; text-anchor: middle; }',
                     '.country-label { opacity: 1; }'
                 ].join('\n');
                 clone.prepend(styleEl);
@@ -955,13 +997,13 @@
                     canvas.height = H * scale;
                     var ctx = canvas.getContext('2d');
 
-                    ctx.fillStyle = '#faf8f5';
+                    ctx.fillStyle = '#faf6ee';
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
                     // Watermark
-                    ctx.fillStyle = 'rgba(55, 53, 47, 0.15)';
+                    ctx.fillStyle = 'rgba(58, 48, 32, 0.18)';
                     ctx.font = '500 16px "Silkscreen", cursive';
                     ctx.textAlign = 'right';
                     ctx.fillText('been there', canvas.width - 48, canvas.height - 32);
