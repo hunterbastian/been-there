@@ -7,6 +7,7 @@
     <meta name="description" content="A minimal travel map. Click countries you've visited.">
     <meta name="theme-color" content="#ffffff">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌍</text></svg>">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/geist@1/dist/mono/style.css">
     <style>
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -35,7 +36,7 @@
             overflow: hidden;
             background: var(--bg);
             color: var(--text);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif;
+            font-family: "Geist Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
             font-size: 14px;
             -webkit-font-smoothing: auto;
         }
@@ -252,6 +253,31 @@
             animation: reveal 0.5s ease forwards;
         }
 
+        /* ── Country Labels ── */
+        .country-label {
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .country-label.visible {
+            opacity: 1;
+        }
+
+        .country-label rect {
+            fill: #0f7b6c;
+            rx: 3;
+        }
+
+        .country-label text {
+            fill: #ffffff;
+            font-family: "Geist Mono", ui-monospace, monospace;
+            font-size: 5px;
+            font-weight: 500;
+            text-anchor: middle;
+            dominant-baseline: central;
+        }
+
         /* ── Tooltip ── */
         #tooltip {
             position: fixed;
@@ -466,6 +492,7 @@
             visited = new Set();
         }
         var totalCountries = 0;
+        var features = [];
 
         // ── DOM refs ──
         var loading = document.getElementById('loading');
@@ -525,7 +552,7 @@
             var countries = topojson.feature(world, world.objects.countries);
             var borders = topojson.mesh(world, world.objects.countries, function (a, b) { return a !== b; });
 
-            var features = countries.features.filter(function (f) { return f.id !== '010'; });
+            features = countries.features.filter(function (f) { return f.id !== '010'; });
             totalCountries = features.length;
             totalEl.textContent = totalCountries;
 
@@ -558,12 +585,57 @@
             }, 1800);
 
             updateCounter();
+            renderInitialLabels();
             loading.classList.add('hidden');
 
         } catch (err) {
             console.error('Failed to load map:', err);
             loading.querySelector('p').textContent = 'Failed to load map data';
             loading.querySelector('.loader').style.display = 'none';
+        }
+
+        // ── Country Labels ──
+        var labelGroup = g.append('g').attr('class', 'labels');
+
+        function addLabel(feature) {
+            var id = String(feature.id);
+            var name = NAMES[id];
+            if (!name) return;
+
+            var centroid = pathGen.centroid(feature);
+            if (isNaN(centroid[0])) return;
+
+            var label = labelGroup.append('g')
+                .attr('class', 'country-label')
+                .attr('data-label-id', id)
+                .attr('transform', 'translate(' + centroid[0] + ',' + centroid[1] + ')');
+
+            var textNode = label.append('text').text(name);
+            var bbox = textNode.node().getBBox();
+            var px = 3, py = 1.5;
+
+            label.insert('rect', 'text')
+                .attr('x', bbox.x - px)
+                .attr('y', bbox.y - py)
+                .attr('width', bbox.width + px * 2)
+                .attr('height', bbox.height + py * 2);
+
+            requestAnimationFrame(function () {
+                label.classed('visible', true);
+            });
+        }
+
+        function removeLabel(id) {
+            labelGroup.select('[data-label-id="' + id + '"]')
+                .classed('visible', false)
+                .transition().duration(300).remove();
+        }
+
+        // Render labels for already-visited countries
+        function renderInitialLabels() {
+            features.forEach(function (f) {
+                if (visited.has(String(f.id))) addLabel(f);
+            });
         }
 
         // ── Handlers ──
@@ -575,9 +647,11 @@
             if (visited.has(id)) {
                 visited.delete(id);
                 el.classed('visited', false);
+                removeLabel(id);
             } else {
                 visited.add(id);
                 el.classed('visited', true);
+                addLabel(d);
             }
 
             el.classed('pulse', false);
@@ -652,7 +726,10 @@
                     '.graticule { fill: none; stroke: #f0efeb; stroke-width: 0.3; }',
                     '.boundary { fill: none; stroke: rgba(55,53,47,0.06); stroke-width: 0.3; }',
                     '.country { fill: #e8e7e3; stroke: #dddcd8; stroke-width: 0.3; }',
-                    '.country.visited { fill: #d4a373; stroke: #c49366; }'
+                    '.country.visited { fill: #d4a373; stroke: #c49366; }',
+                    '.country-label rect { fill: #0f7b6c; rx: 3; }',
+                    '.country-label text { fill: #fff; font-family: monospace; font-size: 5px; font-weight: 500; text-anchor: middle; dominant-baseline: central; }',
+                    '.country-label { opacity: 1; }'
                 ].join('\n');
                 clone.prepend(styleEl);
 
@@ -679,11 +756,11 @@
 
                     // Watermark
                     ctx.fillStyle = 'rgba(55, 53, 47, 0.15)';
-                    ctx.font = '500 20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+                    ctx.font = '500 20px "Geist Mono", monospace';
                     ctx.textAlign = 'right';
                     ctx.fillText('been there', canvas.width - 48, canvas.height - 32);
 
-                    ctx.font = '16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+                    ctx.font = '16px "Geist Mono", monospace';
                     ctx.textAlign = 'left';
                     ctx.fillText(visited.size + ' / ' + totalCountries, 48, canvas.height - 34);
 
@@ -729,6 +806,7 @@
                 visited.clear();
                 save();
                 d3.selectAll('.country').classed('visited', false);
+                labelGroup.selectAll('.country-label').remove();
                 updateCounter();
                 this.classList.remove('confirm');
                 this.textContent = 'Reset';
