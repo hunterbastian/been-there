@@ -5,37 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>been there</title>
     <meta name="description" content="A minimal travel map. Click countries you've visited.">
-    <meta name="theme-color" content="#ffffff">
+    <meta name="theme-color" content="#faf8f5">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌍</text></svg>">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/geist@1/dist/mono/style.css">
     <style>
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
-            --bg: #ffffff;
-            --surface: rgba(255, 255, 255, 0.72);
-            --surface-solid: #ffffff;
-            --ocean: #f7f7f5;
-            --land: #e9e8e4;
-            --land-stroke: #deddd9;
-            --land-hover: #d8d7d2;
-            --visited: #c9a87c;
-            --visited-stroke: #b8946a;
-            --visited-hover: #bfa074;
-            --graticule: #f0efeb;
-            --text: #1a1a19;
-            --text-secondary: #6b6b68;
-            --text-tertiary: #a3a3a0;
-            --border: rgba(0, 0, 0, 0.06);
-            --hover-bg: rgba(0, 0, 0, 0.04);
-            --active-bg: rgba(0, 0, 0, 0.07);
-            --accent: #c9a87c;
-            --glass: rgba(255, 255, 255, 0.72);
-            --glass-border: rgba(255, 255, 255, 0.5);
-            --label-bg: #2c2c2b;
-            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
-            --shadow-md: 0 4px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
-            --shadow-lg: 0 8px 24px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
+            --bg: #faf8f5;
+            --surface: #faf8f5;
+            --ocean: #f3f0ea;
+            --land: #e0dbd2;
+            --land-stroke: #d4cfc5;
+            --land-hover: #d6d1c7;
+            --visited: #7d8c6e;
+            --visited-stroke: #6d7b5f;
+            --visited-hover: #728164;
+            --graticule: #ece8e0;
+            --text: #37352f;
+            --text-secondary: #787774;
+            --text-tertiary: #a3a09a;
+            --border: rgba(55, 53, 47, 0.09);
+            --hover-bg: rgba(55, 53, 47, 0.04);
+            --active-bg: rgba(55, 53, 47, 0.06);
+            --accent: #7d8c6e;
         }
 
         html, body {
@@ -45,9 +38,7 @@
             color: var(--text);
             font-family: "Geist Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
             font-size: 14px;
-            letter-spacing: -0.01em;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
+            -webkit-font-smoothing: auto;
         }
 
         /* ── Loading ── */
@@ -94,14 +85,12 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 48px;
+            height: 45px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 14px 0 18px;
-            background: var(--glass);
-            backdrop-filter: blur(20px) saturate(180%);
-            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            padding: 0 12px 0 16px;
+            background: var(--surface);
             border-bottom: 1px solid var(--border);
             z-index: 50;
             user-select: none;
@@ -114,17 +103,16 @@
         }
 
         h1 {
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 500;
             color: var(--text);
             display: flex;
             align-items: center;
-            gap: 7px;
-            letter-spacing: -0.02em;
+            gap: 6px;
         }
 
         h1 .icon {
-            font-size: 16px;
+            font-size: 18px;
             line-height: 1;
         }
 
@@ -132,23 +120,21 @@
             display: flex;
             align-items: center;
             gap: 0;
-            font-size: 11px;
+            font-size: 12px;
             color: var(--text-tertiary);
             background: var(--hover-bg);
-            border-radius: 100px;
-            padding: 3px 10px;
-            letter-spacing: 0.02em;
+            border-radius: 4px;
+            padding: 2px 8px;
         }
 
         #count {
             font-weight: 600;
-            color: var(--text);
+            color: var(--text-secondary);
             margin-right: 2px;
         }
 
         .counter .sep {
-            margin: 0 3px;
-            opacity: 0.4;
+            margin: 0 2px;
         }
 
         .header-right {
@@ -160,58 +146,44 @@
         button {
             font-family: inherit;
             font-weight: 400;
-            font-size: 12px;
+            font-size: 13px;
             color: var(--text-secondary);
             background: transparent;
             border: none;
-            border-radius: 6px;
-            padding: 5px 10px;
+            border-radius: 4px;
+            padding: 4px 8px;
             cursor: pointer;
-            transition: all 0.15s ease;
+            transition: background 0.1s ease;
             white-space: nowrap;
             line-height: 1.4;
-            letter-spacing: 0;
         }
 
         button:hover {
             background: var(--hover-bg);
-            color: var(--text);
         }
 
         button:active {
             background: var(--active-bg);
-            transform: scale(0.97);
         }
 
         button:disabled {
-            opacity: 0.35;
+            opacity: 0.4;
             cursor: default;
         }
 
         button.confirm {
-            color: #dc3d3d;
-            background: rgba(220, 61, 61, 0.06);
+            color: #e03e3e;
         }
 
         button.success {
-            color: #0d9373;
-            background: rgba(13, 147, 115, 0.06);
+            color: var(--accent);
         }
 
         /* ── Map ── */
         #map-container {
             position: fixed;
             inset: 0;
-            padding-top: 48px;
-        }
-
-        #map-container::after {
-            content: '';
-            position: absolute;
-            inset: 48px 0 0 0;
-            pointer-events: none;
-            z-index: 5;
-            background: radial-gradient(ellipse at center, transparent 60%, rgba(255,255,255,0.6) 100%);
+            padding-top: 45px;
         }
 
         #map {
@@ -235,6 +207,21 @@
             stroke-width: 0.3;
         }
 
+        .graticule-fine {
+            fill: none;
+            stroke: var(--graticule);
+            stroke-width: 0.15;
+            opacity: 0.5;
+        }
+
+        .topo-line {
+            fill: none;
+            stroke: var(--land-stroke);
+            stroke-width: 0.15;
+            opacity: 0.35;
+            pointer-events: none;
+        }
+
         .boundary {
             fill: none;
             stroke: rgba(55, 53, 47, 0.06);
@@ -246,12 +233,11 @@
             stroke: var(--land-stroke);
             stroke-width: 0.3;
             cursor: pointer;
-            transition: fill 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94), stroke 0.2s ease, filter 0.2s ease;
+            transition: fill 0.2s ease, stroke 0.2s ease;
         }
 
         .country:hover {
             fill: var(--land-hover);
-            filter: brightness(0.97);
         }
 
         .country.visited {
@@ -261,16 +247,14 @@
 
         .country.visited:hover {
             fill: var(--visited-hover);
-            filter: brightness(1.04);
         }
 
         .country.pulse {
-            animation: click-pulse 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            animation: click-pulse 0.3s ease-out;
         }
 
         @keyframes click-pulse {
-            0% { filter: brightness(1.12); }
-            50% { filter: brightness(1.06); }
+            0% { filter: brightness(1.08); }
             100% { filter: brightness(1); }
         }
 
@@ -288,8 +272,7 @@
         .country-label {
             pointer-events: none;
             opacity: 0;
-            transition: opacity 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15));
+            transition: opacity 0.3s ease;
         }
 
         .country-label.visible {
@@ -297,59 +280,53 @@
         }
 
         .country-label rect {
-            fill: var(--label-bg);
-            rx: 10;
-            ry: 10;
+            fill: var(--text);
+            rx: 2;
         }
 
         .country-label text {
-            fill: rgba(255, 255, 255, 0.92);
+            fill: var(--bg);
             font-family: "Geist Mono", ui-monospace, monospace;
-            font-size: 4px;
-            font-weight: 400;
-            letter-spacing: 0.03em;
+            font-size: 3.5px;
+            font-weight: 500;
+            letter-spacing: 0.04em;
             text-anchor: middle;
             dominant-baseline: central;
+            text-transform: uppercase;
         }
 
         /* ── Tooltip ── */
         #tooltip {
             position: fixed;
-            bottom: 28px;
+            bottom: 24px;
             left: 50%;
-            transform: translateX(-50%) translateY(4px);
+            transform: translateX(-50%);
             font-family: inherit;
             font-weight: 400;
-            font-size: 12px;
+            font-size: 13px;
             color: var(--text);
-            background: var(--glass);
-            backdrop-filter: blur(20px) saturate(180%);
-            -webkit-backdrop-filter: blur(20px) saturate(180%);
-            padding: 7px 16px;
-            border-radius: 100px;
-            border: 1px solid var(--glass-border);
-            box-shadow: var(--shadow-md);
+            background: var(--surface);
+            padding: 6px 16px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
             pointer-events: none;
             opacity: 0;
-            transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            transition: opacity 0.15s ease;
             z-index: 40;
             white-space: nowrap;
             display: flex;
             align-items: center;
             gap: 6px;
-            letter-spacing: -0.01em;
         }
 
         #tooltip.visible {
             opacity: 1;
-            transform: translateX(-50%) translateY(0);
         }
 
         #tooltip-check {
             color: var(--accent);
-            font-weight: 500;
+            font-weight: 600;
             display: none;
-            font-size: 13px;
         }
 
         #tooltip-check.show {
@@ -359,21 +336,18 @@
         /* ── Zoom Controls ── */
         #zoom-controls {
             position: fixed;
-            bottom: 28px;
-            right: 18px;
+            bottom: 24px;
+            right: 16px;
             display: flex;
             flex-direction: column;
-            gap: 0;
+            gap: 1px;
             z-index: 40;
-            background: var(--glass);
-            backdrop-filter: blur(20px) saturate(180%);
-            -webkit-backdrop-filter: blur(20px) saturate(180%);
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            box-shadow: var(--shadow-md);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 4px;
             overflow: hidden;
-            opacity: 0.5;
-            transition: opacity 0.3s ease;
+            opacity: 0.6;
+            transition: opacity 0.2s ease;
         }
 
         #zoom-controls:hover {
@@ -381,19 +355,15 @@
         }
 
         #zoom-controls button {
-            width: 32px;
-            height: 30px;
+            width: 30px;
+            height: 28px;
             padding: 0;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
+            font-size: 15px;
             color: var(--text-secondary);
             border-radius: 0;
-        }
-
-        #zoom-controls button:hover {
-            color: var(--text);
         }
 
         #zoom-controls button:not(:last-child) {
@@ -403,24 +373,23 @@
         /* ── Responsive ── */
         @media (max-width: 640px) {
             header {
-                padding: 0 10px 0 14px;
-                height: 44px;
+                padding: 0 10px 0 12px;
+                height: 42px;
             }
-            h1 { font-size: 12px; }
-            h1 .icon { font-size: 14px; }
-            .header-left { gap: 8px; }
-            .counter { font-size: 10px; padding: 2px 8px; }
-            button { font-size: 11px; padding: 4px 8px; }
-            #map-container { padding-top: 44px; }
-            #map-container::after { inset: 44px 0 0 0; }
+            h1 { font-size: 13px; }
+            h1 .icon { font-size: 16px; }
+            .header-left { gap: 10px; }
+            .counter { font-size: 11px; padding: 2px 6px; }
+            button { font-size: 12px; padding: 3px 6px; }
+            #map-container { padding-top: 42px; }
             #tooltip {
-                bottom: 20px;
-                font-size: 11px;
-                padding: 6px 14px;
+                bottom: 16px;
+                font-size: 12px;
+                padding: 5px 12px;
             }
             #zoom-controls {
-                bottom: 20px;
-                right: 12px;
+                bottom: 16px;
+                right: 10px;
             }
         }
     </style>
@@ -583,10 +552,16 @@
             .attr('class', 'sphere')
             .attr('d', pathGen);
 
-        // Graticule
+        // Graticule (major)
         g.append('path')
             .datum(d3.geoGraticule().step([30, 30])())
             .attr('class', 'graticule')
+            .attr('d', pathGen);
+
+        // Graticule (fine — topo survey feel)
+        g.append('path')
+            .datum(d3.geoGraticule().step([10, 10])())
+            .attr('class', 'graticule-fine')
             .attr('d', pathGen);
 
         // ── Load & render ──
@@ -625,6 +600,27 @@
                 .datum(borders)
                 .attr('class', 'boundary')
                 .attr('d', pathGen);
+
+            // Topographic contour lines (inset borders for elevation feel)
+            var topoGroup = g.append('g').attr('class', 'topo-lines');
+            var insetScales = [0.92, 0.82, 0.70];
+            features.forEach(function (f) {
+                var centroid = pathGen.centroid(f);
+                if (isNaN(centroid[0])) return;
+                var area = pathGen.area(f);
+                if (area < 50) return; // skip tiny countries
+                insetScales.forEach(function (s) {
+                    if (area < 200 && s < 0.8) return; // fewer lines for small countries
+                    topoGroup.append('path')
+                        .datum(f)
+                        .attr('class', 'topo-line')
+                        .attr('d', pathGen)
+                        .attr('transform',
+                            'translate(' + centroid[0] * (1 - s) + ',' + centroid[1] * (1 - s) + ') scale(' + s + ')'
+                        )
+                        .attr('transform-origin', '0 0');
+                });
+            });
 
             setTimeout(function () {
                 d3.selectAll('.country').classed('revealing', false);
@@ -768,13 +764,15 @@
 
                 var styleEl = document.createElementNS('http://www.w3.org/2000/svg', 'style');
                 styleEl.textContent = [
-                    '.sphere { fill: #f7f7f5; }',
-                    '.graticule { fill: none; stroke: #f0efeb; stroke-width: 0.3; }',
-                    '.boundary { fill: none; stroke: rgba(0,0,0,0.06); stroke-width: 0.3; }',
-                    '.country { fill: #e9e8e4; stroke: #deddd9; stroke-width: 0.3; }',
-                    '.country.visited { fill: #c9a87c; stroke: #b8946a; }',
-                    '.country-label rect { fill: #2c2c2b; rx: 10; ry: 10; }',
-                    '.country-label text { fill: rgba(255,255,255,0.92); font-family: monospace; font-size: 4px; font-weight: 400; text-anchor: middle; dominant-baseline: central; }',
+                    '.sphere { fill: #f3f0ea; }',
+                    '.graticule { fill: none; stroke: #ece8e0; stroke-width: 0.3; }',
+                    '.boundary { fill: none; stroke: rgba(55,53,47,0.06); stroke-width: 0.3; }',
+                    '.country { fill: #e0dbd2; stroke: #d4cfc5; stroke-width: 0.3; }',
+                    '.country.visited { fill: #7d8c6e; stroke: #6d7b5f; }',
+                    '.graticule-fine { fill: none; stroke: #ece8e0; stroke-width: 0.15; opacity: 0.5; }',
+                    '.topo-line { fill: none; stroke: #d4cfc5; stroke-width: 0.15; opacity: 0.35; }',
+                    '.country-label rect { fill: #37352f; rx: 2; }',
+                    '.country-label text { fill: #faf8f5; font-family: monospace; font-size: 3.5px; font-weight: 500; letter-spacing: 0.04em; text-anchor: middle; dominant-baseline: central; text-transform: uppercase; }',
                     '.country-label { opacity: 1; }'
                 ].join('\n');
                 clone.prepend(styleEl);
@@ -795,7 +793,7 @@
                     canvas.height = H * scale;
                     var ctx = canvas.getContext('2d');
 
-                    ctx.fillStyle = '#ffffff';
+                    ctx.fillStyle = '#faf8f5';
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
